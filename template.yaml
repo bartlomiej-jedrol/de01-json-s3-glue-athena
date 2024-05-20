@@ -1,0 +1,31 @@
+Transform: AWS::Serverless-2016-10-31
+Description: S3 Create Object event triggers Lambda function
+Resources:
+  ProcessFileFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      Architectures:
+        - x86_64
+      Timeout: 60
+      Environment:
+        Variables:
+          S3_TARGET_BUCKET: "de01-target-files"
+      # Events:
+      #   S3Event:
+      #     Type: S3
+      #     Properties:
+      #       Bucket: !Ref SourceFilesBucket
+      #       Events: s3:ObjectCreated:*
+
+  SourceFilesBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: de01-source-files
+  
+  TargetFilesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: de01-target-files
