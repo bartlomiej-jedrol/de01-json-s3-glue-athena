@@ -157,7 +157,7 @@ def lambda_handler(event, context):
         df.to_parquet(path=lambda_path, compression='snappy')
 
         # Upload Parquet file from the temporary Lambda path to the target S3 bucket
-        target_object_key = f'year={year}/month={month}/day={day}/{parquet_file_name}'
+        target_object_key = f'{file_name_prefix}/year={year}/month={month}/day={day}/{parquet_file_name}'
         upload_object(
             file_name=lambda_path, bucket=TARGET_BUCKET_NAME, key=target_object_key
         )
