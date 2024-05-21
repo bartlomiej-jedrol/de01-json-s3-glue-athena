@@ -56,8 +56,6 @@ def matches_pattern(s: str) -> bool:
     pattern = r'\d{4}_\d{2}_\d{2}'
     return bool(re.match(pattern, s))
 
-    # Function to create Data Frame from the JSON data.
-
 
 def create_data_frames(data: dict) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
