@@ -17,3 +17,8 @@ variable "lambda_iam_role" {
   type    = string
   default = "de01-lambda-role"
 }
+
+variable "athena_results" {
+  type    = string
+  default = "de01-athena-results"
+}

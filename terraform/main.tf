@@ -27,6 +27,10 @@ resource "aws_s3_bucket" "processed_bucket" {
   bucket = var.processed_bucket
 }
 
+resource "aws_s3_bucket" "athena_results" {
+  bucket = var.athena_results
+}
+
 resource "aws_ecr_repository" "ecr-repo" {
   name = var.lambda_ecr_repo
 }
