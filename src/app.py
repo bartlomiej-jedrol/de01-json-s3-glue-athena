@@ -7,8 +7,6 @@ from urllib.parse import unquote_plus
 import boto3
 import pandas as pd
 
-# from src.sample_files import sample_s3_event as se
-
 S3_CLIENT = boto3.client('s3')
 TARGET_BUCKET_NAME = os.getenv('S3_TARGET_BUCKET')
 

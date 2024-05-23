@@ -252,3 +252,9 @@ samconfig.toml
 sample_files/
 tests/
 sample_files/
+terraform/.terraform/
+terraform/terraform.tfstate
+ terraform/terraform.tfstate.backup
+# Byte-compiled / optimized / DLL files
+__pycache__/
+terraform/terraform.tfstate.backup
