@@ -5,3 +5,7 @@
 - The Parquet files are partitioned by date because the AWS Athena reads the files by date.
 - File names are in format “data_YYYY_MM_DD.json”
 - Files can be updated or deleted.
+
+# Architecture
+
+![de01_architecture.png](architecture.png)
