@@ -8,4 +8,4 @@
 
 # Architecture
 
-![de01_architecture.png](architecture.png)
+![de01_architecture.png](de01_architecture.png)
