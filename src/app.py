@@ -32,7 +32,7 @@ def read_json(bucket: str, key: str) -> dict[str, str | float]:
         )
         s3_object_bytes = s3_object['Body'].read()
         data = json.loads(s3_object_bytes)
-        print(f'Data: {data}\n')
+        # print(f'Data: {data}\n')
         return data
     except Exception as e:
         logger.error(
