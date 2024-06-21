@@ -75,11 +75,47 @@ resource "aws_lambda_permission" "allow_bucket" {
   source_arn    = "arn:aws:s3:::${aws_s3_bucket.raw_bucket.id}"
 }
 
-resource "aws_s3_bucket_notification" "bucket_notification" {
+resource "aws_s3_bucket_notification" "lambda_notification" {
   bucket = aws_s3_bucket.raw_bucket.id
 
   lambda_function {
     lambda_function_arn = aws_lambda_function.de01_lambda.arn
     events              = ["s3:ObjectCreated:*"]
+  }
+}
+
+resource "aws_sqs_queue" "sqs_queue" {
+  name = var.sqs_queue
+}
+
+resource "aws_sqs_queue_policy" "sqs_policy" {
+  queue_url = aws_sqs_queue.sqs_queue.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "s3.amazonaws.com"
+        }
+        Action   = "sqs:SendMessage"
+        Resource = aws_sqs_queue.sqs_queue.arn
+        Condition = {
+          ArnEquals = {
+            "aws:SourceArn" : aws_s3_bucket.processed_bucket.arn
+          }
+        }
+      },
+    ]
+  })
+}
+
+resource "aws_s3_bucket_notification" "sqs_notification" {
+  bucket = aws_s3_bucket.processed_bucket.id
+
+  queue {
+    queue_arn = aws_sqs_queue.sqs_queue.arn
+    events    = ["s3:ObjectCreated:*", "s3:ObjectRemoved:*"]
   }
 }

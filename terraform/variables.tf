@@ -22,3 +22,8 @@ variable "athena_results" {
   type    = string
   default = "de01-athena-results"
 }
+
+variable "sqs_queue" {
+  type    = string
+  default = "de01-sqs-queue"
+}
