@@ -27,3 +27,8 @@ variable "sqs_queue" {
   type    = string
   default = "de01-sqs-queue"
 }
+
+variable "glue_iam_role" {
+  type    = string
+  default = "de01-glue-role"
+}

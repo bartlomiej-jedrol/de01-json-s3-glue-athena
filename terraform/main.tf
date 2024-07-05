@@ -18,6 +18,7 @@ provider "aws" {
   region = "eu-central-1"
 }
 
+# S3 buckets
 resource "aws_s3_bucket" "raw_bucket" {
   bucket = var.raw_bucket
 }
@@ -30,10 +31,12 @@ resource "aws_s3_bucket" "athena_results" {
   bucket = var.athena_results
 }
 
+#ECR repository
 resource "aws_ecr_repository" "ecr-repo" {
   name = var.lambda_ecr_repo
 }
 
+# Lambda
 resource "aws_iam_role" "lambda_iam_role" {
   name = var.lambda_iam_role
   assume_role_policy = jsonencode({
@@ -84,10 +87,12 @@ resource "aws_s3_bucket_notification" "lambda_notification" {
   }
 }
 
+# SQS queue
 resource "aws_sqs_queue" "sqs_queue" {
   name = var.sqs_queue
 }
 
+# Defines who can access your queue
 resource "aws_sqs_queue_policy" "sqs_policy" {
   queue_url = aws_sqs_queue.sqs_queue.id
 
@@ -118,4 +123,57 @@ resource "aws_s3_bucket_notification" "sqs_notification" {
     queue_arn = aws_sqs_queue.sqs_queue.arn
     events    = ["s3:ObjectCreated:*", "s3:ObjectRemoved:*"]
   }
+}
+
+# Glue
+resource "aws_iam_role" "glue_iam_role" {
+  name = var.glue_iam_role
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "glue.amazonaws.com"
+        }
+      },
+    ]
+  })
+
+  managed_policy_arns = ["arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"]
+}
+
+resource "aws_iam_role_policy" "glue-inline-policy" {
+  role = aws_iam_role.glue_iam_role.name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:Get*",
+          "s3:List*"
+        ]
+        Resource = [
+          "arn:aws:s3:::de01-processed-data", "arn:aws:s3:::de01-processed-data/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:DeleteMessage",
+          "sqs:GetQueueUrl",
+          "sqs:ListDeadLetterSourceQueues",
+          "sqs:DeleteMessageBatch",
+          "sqs:ReceiveMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:ListQueueTags",
+          "sqs:SetQueueAttributes",
+          "sqs:PurgeQueue",
+        ]
+        Resource = [aws_sqs_queue.sqs_queue.arn]
+      }
+    ],
+  })
 }
