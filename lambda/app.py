@@ -79,7 +79,6 @@ def create_data_frames(data: dict) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataF
 def upload_object(file_name: str, bucket: str, key: str):
     """
     Function to upload Parquet file to the target S3 bucket.
-    The file uploads
 
     Args:
         file_name (str): File name.
