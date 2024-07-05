@@ -1,8 +1,12 @@
 import json
 import random
 import string
-import boto3
 import os
+from dotenv import load_dotenv
+
+import boto3
+
+load_dotenv()
 
 S3_SOURCE_BUCKET = os.getenv("S3_SOURCE_BUCKET")
 
@@ -55,7 +59,7 @@ def generate_random_data():
 
 
 # Generate and upload a specified number of JSON files to AWS S3
-num_files = 1
+num_files = 50
 # s3_prefix = 'data/'
 
 s3_client = boto3.client('s3')
