@@ -67,8 +67,13 @@ def create_data_frames(data: dict) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataF
     """
     df_customer = pd.json_normalize(data=data['customer'])
     df_products = pd.json_normalize(data['products'])
-    df = pd.json_normalize(data)
-    df_order = df[['order_id', 'order_date', 'total_amount']]
+    df_order = pd.json_normalize(data)[['order_id', 'order_date', 'total_amount']]
+
+    # Adding the 'created_on' timestamp with the current data and time
+    current_timestamp = pd.Timestamp.now()
+    df_customer['created_on'] = current_timestamp
+    df_products['created_on'] = current_timestamp
+    df_order['created_on'] = current_timestamp
 
     # print(f'DF customer:\n {df_customer}\n')
     # print(f'DF products:\n {df_products}\n')
@@ -134,8 +139,10 @@ def lambda_handler(event, context):
     data_frames = create_data_frames(data=data)
 
     # Extract date from the source file name
-    date = raw_object_key.replace('data_', '').replace('.json', '')
-    year, month, day = parse_date(date=date)
+    file_datetime = raw_object_key.replace('data_', '').replace('.json', '')
+    # data_2024_07_08T09:18:06.954.json -> 2024_07_08
+    file_date = file_datetime.split(' ')[0]
+    year, month, day = parse_date(date=file_date)
 
     # Upload each Data Frame as the Parquet file to the target S3 bucket
     for df in data_frames:
@@ -147,7 +154,7 @@ def lambda_handler(event, context):
             file_name_prefix = 'order'
 
         # Convert Data Frame to the Parquet format
-        parquet_file_name = f'{date}_{file_name_prefix}.parquet'
+        parquet_file_name = f'{file_datetime}_{file_name_prefix}.parquet'
         lambda_path = f'/tmp/{parquet_file_name}'
         df.to_parquet(path=lambda_path, compression='snappy')
 

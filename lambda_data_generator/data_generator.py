@@ -2,9 +2,10 @@ import json
 import random
 import string
 import os
-from dotenv import load_dotenv
+from datetime import datetime
 
 import boto3
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -17,7 +18,8 @@ product_prices = {"P001": 50.00, "P002": 30.00, "P003": 20.00, "P004": 40.00}
 # Function to generate random data for a JSON file
 def generate_random_data():
     order_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    order_date = f"2024-{random.randint(1,5):02}-{random.randint(1, 31):02}"
+    # order_date = f"2024-{random.randint(1,5):02}-{random.randint(1, 31):02}"
+    order_date = datetime.now().strftime('%Y-%m-%d')
     customer_id = ''.join(random.choices(string.digits, k=1))
     customer_name = ''.join(random.choices(string.ascii_letters, k=8))
     customer_email = f"{customer_name}@example.com"
@@ -59,14 +61,15 @@ def generate_random_data():
 
 
 # Generate and upload a specified number of JSON files to AWS S3
-num_files = 50
+num_files = 10
 # s3_prefix = 'data/'
 
 s3_client = boto3.client('s3')
 
 for i in range(num_files):
     data = generate_random_data()
-    file_name = f"data_{data['order_date'].replace('-', '_')}.json"
+    # file_name = f"data_{data['order_date'].replace('-', '_')}.json"
+    file_name = f"data_{datetime.now().strftime('%Y_%m_%d %H:%M:%S.%f')[:-3]}.json"
     file_path = f"sample_files/{file_name}"
 
     with open(file_path, 'w') as file:
@@ -76,4 +79,4 @@ for i in range(num_files):
 
     print(f"Uploaded {file_name} to S3 bucket {S3_SOURCE_BUCKET}")
 
-    # os.remove(f"sample_files/{file_name}")
+    os.remove(f"sample_files/{file_name}")

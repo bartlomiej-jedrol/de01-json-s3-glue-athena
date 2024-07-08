@@ -57,7 +57,7 @@ resource "aws_iam_role" "lambda_iam_role" {
 
 resource "aws_lambda_function" "de01_lambda" {
   function_name = "de01_lambda"
-  timeout       = 5
+  timeout       = 10
   image_uri     = "${aws_ecr_repository.ecr-repo.repository_url}:latest"
   package_type  = "Image"
 
@@ -145,6 +145,7 @@ resource "aws_iam_role" "glue_iam_role" {
 }
 
 resource "aws_iam_role_policy" "glue-inline-policy" {
+  name = var.glue_inline_policy
   role = aws_iam_role.glue_iam_role.name
   policy = jsonencode({
     Version = "2012-10-17"

@@ -32,3 +32,8 @@ variable "glue_iam_role" {
   type    = string
   default = "de01-glue-role"
 }
+
+variable "glue_inline_policy" {
+  type    = string
+  default = "de01-glue-inline-policy"
+}
