@@ -27,6 +27,10 @@ resource "aws_s3_bucket" "processed_bucket" {
   bucket = var.processed_bucket
 }
 
+resource "aws_s3_bucket" "aggregated_bucket_bucket" {
+  bucket = var.aggregated_bucket
+}
+
 resource "aws_s3_bucket" "athena_results" {
   bucket = var.athena_results
 }

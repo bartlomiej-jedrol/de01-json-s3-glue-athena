@@ -61,7 +61,7 @@ def generate_random_data():
 
 
 # Generate and upload a specified number of JSON files to AWS S3
-num_files = 10
+num_files = 1000
 # s3_prefix = 'data/'
 
 s3_client = boto3.client('s3')

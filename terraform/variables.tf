@@ -8,6 +8,11 @@ variable "processed_bucket" {
   default = "de01-processed-data"
 }
 
+variable "aggregated_bucket" {
+  type    = string
+  default = "de01-aggregated-data"
+}
+
 variable "lambda_ecr_repo" {
   type    = string
   default = "de01-lambda-repo"
