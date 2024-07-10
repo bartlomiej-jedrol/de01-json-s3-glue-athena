@@ -1,7 +1,6 @@
 import logging
-import re
 from io import BytesIO
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 import boto3
 import botocore
@@ -10,12 +9,21 @@ import pandas as pd
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-TODO  # save the parquet file to temp directory
-
 
 def list_objects(
     bucket: str, prefix: str, next_continuation_token: str = None
 ) -> list[dict]:
+    """
+    Lists objects from S3 bucket for a specific prefix.
+
+    Args:
+        bucket (str): S3 bucket.
+        prefix (str): S3 object prefix.
+        next_continuation_token (str, optional): Lists a continuation of objects from a previous API call. Defaults to None.
+
+    Returns:
+        list[dict]: List of S3 objects.
+    """
     if next_continuation_token:
         try:
             return s3.list_objects_v2(
@@ -25,85 +33,112 @@ def list_objects(
             )
         except botocore.exceptions.ClientError as error:
             logger.error(
-                f'Failed to obtain S3 objects from the bucket: {S3_PROCESSED_BUCKET_NAME} with prefix: {S3_PREFIX_CUSTOMER}: {error}'
+                f'Failed to obtain S3 objects from the bucket: {bucket} with prefix: {prefix}: {error}'
             )
     else:
         try:
-            return s3.list_objects_v2(
-                Bucket=S3_PROCESSED_BUCKET_NAME, Prefix=S3_PREFIX_CUSTOMER
-            )
+            return s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
         except botocore.exceptions.ClientError as error:
             logger.error(
-                f'Failed to obtain S3 objects from the bucket: {S3_PROCESSED_BUCKET_NAME} with prefix: {S3_PREFIX_CUSTOMER}: {error}'
+                f'Failed to obtain S3 objects from the bucket: {bucket} with prefix: {prefix}: {error}'
             )
 
 
-# Job runs daily at 1:00 AM UTC time (3:00 AM local CET time) and aggregates data from the previous day
+def get_parquet_keys(
+    bucket: str, prefix: str, is_truncated: bool, next_continuation_token: str = None
+) -> list[str]:
+    """
+    Returns list of parquet files' S3 object keys for a specific bucket and prefix.
+
+    Args:
+        bucket (str): S3 bucket.
+        prefix (str): S3 object prefix.
+        is_truncated (bool): True if an initial API call returns 1000 objects (api limit) and there if more to get. Should be set to True to enter the loop.
+        next_continuation_token (str): Lists a continuation of objects from a previous API call.
+
+    Returns:
+        list[str]: List of of parquet files S3 object keys.
+    """
+    parquet_keys = []
+    while is_truncated:
+        if next_continuation_token:
+            response = list_objects(
+                bucket=bucket,
+                prefix=prefix,
+                next_continuation_token=next_continuation_token,
+            )
+        else:
+            response = list_objects(bucket=bucket, prefix=prefix)
+
+        is_truncated = response.get('IsTruncated')
+        next_continuation_token = response.get('NextContinuationToken')
+        # print(response.get('Contents'))
+
+        parquet_keys.extend([obj.get('Key') for obj in response.get('Contents')])
+        logger.info(
+            f'Successfully obtained S3 objects from the bucket: {bucket} with prefix: {prefix}. Number of S3 objects: {len(parquet_keys)}'
+        )
+    return parquet_keys
+
+
+# Set job schedule time.
+# Job runs daily at 1:00 AM UTC time (3:00 AM local CET time) and aggregates data from the previous day.
 current_datetime_utc = datetime.now(tz=timezone.utc)
 job_schedule_time = current_datetime_utc  # + timedelta(days=-1)
-# print(job_schedule_time)
+
+# Date parts of the job schedule date.
 year = f'{job_schedule_time.year}'
 month = f'{job_schedule_time.month:02d}'
 day = f'{job_schedule_time.day:02d}'
 
-# AWS S3 bucket details
+# AWS S3 bucket details.
 S3_PROCESSED_BUCKET_NAME = 'de01-processed-data'
 S3_AGGREGATED_BUCKET_NAME = 'de01-aggregated-data'
-S3_PREFIX_CUSTOMER = f'customer/year={year}/month={month}/day={day}/'
-S3_PREFIX_ORDER = f'order/year={year}/month={month}/day={day}/'
-S3_PREFIX_PRODUCTS = f'products/year={year}/month={month}/day={day}/'
-# print(S3_PREFIX)
+PREFIX_CUSTOMER = 'customer'
+PREFIX_ORDER = 'order'
+PREFIX_PRODUCTS = 'products'
+S3_PREFIXES = (
+    f'{PREFIX_CUSTOMER}/year={year}/month={month}/day={day}/',
+    f'{PREFIX_ORDER}/year={year}/month={month}/day={day}/',
+    f'{PREFIX_PRODUCTS}/year={year}/month={month}/day={day}/',
+)
 
-
-# List parquet files from the S3 bucket
 s3 = boto3.client('s3')
-
-# Set initial parameters
-# is_truncated is set to True to allow entering an initial loop
+# Set initial parameter - is_truncated is set to True to allow entering an initial loop.
 is_truncated = True
-next_continuation_token = None
-parquet_files = []
-
-while is_truncated:
-    if next_continuation_token:
-        response = list_objects(
-            bucket=S3_PROCESSED_BUCKET_NAME,
-            prefix=S3_PREFIX_CUSTOMER,
-            next_continuation_token=next_continuation_token,
-        )
-    else:
-        response = list_objects(
-            bucket=S3_PROCESSED_BUCKET_NAME, prefix=S3_PREFIX_CUSTOMER
-        )
-
-    is_truncated = response.get('IsTruncated')
-    next_continuation_token = response.get('NextContinuationToken')
-
-    parquet_files.extend([obj.get('Key') for obj in response.get('Contents')])
-    logger.info(
-        f'Successfully obtained S3 objects from the bucket: {S3_PROCESSED_BUCKET_NAME} with prefix: {S3_PREFIX_CUSTOMER}. Number of S3 objects: {len(parquet_files)}'
+# Loop over all S3 prefixes to get parquet keys for customer, order, and products.
+for prefix in S3_PREFIXES:
+    parquet_keys = []
+    parquet_keys = get_parquet_keys(
+        bucket=S3_PROCESSED_BUCKET_NAME,
+        prefix=prefix,
+        is_truncated=True,
     )
 
-print(parquet_files[:10])
-# print(len(parquet_files))
+    aggregated_df = pd.DataFrame()
+    for obj_key in parquet_keys:
+        obj = s3.get_object(Bucket=S3_PROCESSED_BUCKET_NAME, Key=obj_key)
+        # Create Data Frame for each parquet file.
+        df = pd.read_parquet(BytesIO(obj.get('Body').read()))
+        # print(f'obj: {obj}\n')
+        # print(f'obj.get("Body"): {obj.get("Body")}\n')
+        # print(f'obj.get("Body").read(): {obj.get("Body").read()}\n')
+        # print(f'BytesIO(obj.get("Body").read(): {BytesIO(obj.get("Body").read())}\n')
 
-aggregated_df = pd.DataFrame()
+        # Merge current Data Frame of parquet file to the aggregated Data Frame.
+        aggregated_df = pd.concat([aggregated_df, df], ignore_index=True)
 
-for obj_key in parquet_files:
-    obj = s3.get_object(Bucket=S3_PROCESSED_BUCKET_NAME, Key=obj_key)
-    df = pd.read_parquet(BytesIO(obj.get('Body').read()))
+    # print(aggregated_df)
 
-    aggregated_df = pd.concat([aggregated_df, df], ignore_index=True)
+    parquet_file_name = f'{prefix}{year}_{month}_{day}_aggregated.parquet'
 
-print(aggregated_df)
-aggregated_parquet_name = 'aggregated_parquet_file.parquet'
-aggregated_df.to_parquet(aggregated_parquet_name)
+    # Convert an aggregated Data Frame buffer to parquet file.
+    buffer = BytesIO()
+    aggregated_df.to_parquet(buffer)
 
-buffer = BytesIO()
-aggregated_df.to_parquet(buffer)
-
-s3.put_object(
-    Bucket=S3_AGGREGATED_BUCKET_NAME,
-    Key=f'{S3_PREFIX_CUSTOMER}{aggregated_parquet_name}',
-    Body=buffer.getvalue(),
-)
+    # Put the aggregated parquet file to S3 bucket.
+    s3.put_object(
+        Bucket=S3_AGGREGATED_BUCKET_NAME,
+        Key=parquet_file_name,
+        Body=buffer.getvalue(),
+    )
