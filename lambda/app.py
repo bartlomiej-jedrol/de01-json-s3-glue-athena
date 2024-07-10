@@ -139,8 +139,9 @@ def lambda_handler(event, context):
     data_frames = create_data_frames(data=data)
 
     # Extract date from the source file name
-    file_datetime = raw_object_key.replace('data_', '').replace('.json', '')
-    # data_2024_07_08T09:18:06.954.json -> 2024_07_08
+    file_datetime = raw_object_key.replace('data_', '').replace(
+        '.json', ''
+    )  # data_2024_07_08T09:18:06.954.json -> 2024_07_08
     file_date = file_datetime.split(' ')[0]
     year, month, day = parse_date(date=file_date)
 
