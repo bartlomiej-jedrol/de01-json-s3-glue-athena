@@ -130,7 +130,14 @@ for prefix in S3_PREFIXES:
 
     # print(aggregated_df)
 
-    parquet_file_name = f'{prefix}{year}_{month}_{day}_aggregated.parquet'
+    # Map prefix to suffix for the parquet file name.
+    prefix_to_suffix_map = {
+        S3_PREFIXES[0]: PREFIX_CUSTOMER,
+        S3_PREFIXES[1]: PREFIX_ORDER,
+        S3_PREFIXES[2]: PREFIX_PRODUCTS,
+    }
+    suffix = prefix_to_suffix_map.get(prefix, '')
+    parquet_file_name = f'{prefix}{year}_{month}_{day}_{suffix}_aggregated.parquet'
 
     # Convert an aggregated Data Frame buffer to parquet file.
     buffer = BytesIO()
