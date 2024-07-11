@@ -75,9 +75,13 @@ def get_parquet_keys(
         # print(response.get('Contents'))
 
         parquet_keys.extend([obj.get('Key') for obj in response.get('Contents')])
-        logger.info(
-            f'Successfully obtained S3 objects from the bucket: {bucket} with prefix: {prefix}. Number of S3 objects: {len(parquet_keys)}'
-        )
+
+    logger.info(
+        f'Successfully obtained S3 objects from the bucket: {bucket} with prefix: {prefix}. Number of S3 objects: {len(parquet_keys)}'
+    )
+    print(
+        f'Successfully obtained S3 objects from the bucket: {bucket} with prefix: {prefix}. Number of S3 objects: {len(parquet_keys)}'
+    )
     return parquet_keys
 
 
@@ -108,7 +112,6 @@ s3 = boto3.client('s3')
 is_truncated = True
 # Loop over all S3 prefixes to get parquet keys for customer, order, and products.
 for prefix in S3_PREFIXES:
-    parquet_keys = []
     parquet_keys = get_parquet_keys(
         bucket=S3_PROCESSED_BUCKET_NAME,
         prefix=prefix,

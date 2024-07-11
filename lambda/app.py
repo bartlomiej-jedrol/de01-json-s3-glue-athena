@@ -65,9 +65,11 @@ def create_data_frames(data: dict) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataF
     Returns:
         tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: Three Data Frames for customer, products, and order.
     """
-    df_customer = pd.json_normalize(data=data['customer'])
+    df_customer = pd.json_normalize(data['customer'])
     df_products = pd.json_normalize(data['products'])
-    df_order = pd.json_normalize(data)[['order_id', 'order_date', 'total_amount']]
+    df_order = pd.json_normalize(data)[
+        ['order_id', 'order_date', 'total_amount', 'customer.customer_id']
+    ]
 
     # Adding the 'created_on' timestamp with the current data and time
     current_timestamp = pd.Timestamp.now()
