@@ -70,17 +70,25 @@ def create_data_frames(data: dict) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataF
     df_order = pd.json_normalize(data)[
         ['order_id', 'order_date', 'total_amount', 'customer.customer_id']
     ]
+    # Normalize the 'products' part of the JSON and include 'order_id' as a meta field
+    df_order_products = pd.json_normalize(
+        data, record_path=['products'], meta=['order_id'], errors='ignore'
+    )
+    # Select only the 'order_id' and 'product_id' columns
+    df_order_products = df_order_products[['order_id', 'product_id']]
 
     # Adding the 'created_on' timestamp with the current data and time
     current_timestamp = pd.Timestamp.now()
     df_customer['created_on'] = current_timestamp
     df_products['created_on'] = current_timestamp
     df_order['created_on'] = current_timestamp
+    df_order_products['created_on'] = current_timestamp
 
-    # print(f'DF customer:\n {df_customer}\n')
-    # print(f'DF products:\n {df_products}\n')
-    # print(f'DF order:\n {df_order}\n')
-    return df_customer, df_products, df_order
+    print(f'DF customer:\n {df_customer}\n')
+    print(f'DF products:\n {df_products}\n')
+    print(f'DF order:\n {df_order}\n')
+    print(f'DF product_order:\n {df_order_products}\n')
+    return df_customer, df_products, df_order, df_order_products
 
 
 def upload_object(file_name: str, bucket: str, key: str):
@@ -151,10 +159,15 @@ def lambda_handler(event, context):
     for df in data_frames:
         if 'customer_id' in df.columns:
             file_name_prefix = 'customer'
+        elif all(column in df.columns for column in ['order_id', 'product_id']):
+            file_name_prefix = 'order_products'
         elif 'product_id' in df.columns:
             file_name_prefix = 'products'
         elif 'order_id' in df.columns:
             file_name_prefix = 'order'
+
+        print(df.columns)
+        print(file_name_prefix)
 
         # Convert Data Frame to the Parquet format
         parquet_file_name = f'{file_datetime}_{file_name_prefix}.parquet'

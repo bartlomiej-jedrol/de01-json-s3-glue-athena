@@ -260,3 +260,4 @@ __pycache__/
 terraform/terraform.tfstate.backup
 kubectl
 kubectl.sha256
+glue_job/
