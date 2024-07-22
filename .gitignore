@@ -249,9 +249,8 @@ $RECYCLE.BIN/
 __init__.py
 events/
 samconfig.toml
-sample_files/
+sample_files/sample_s3_event.py
 tests/
-sample_files/
 terraform/.terraform/
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
